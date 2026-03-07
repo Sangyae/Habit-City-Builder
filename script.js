@@ -1,244 +1,181 @@
-// ====================== DATA & STATE ======================
-let tasks = [
-  { id: 1, name: "Attend Calendar Event", icon: "📅", category: "Calendar", completed: false },
-  { id: 2, name: "10,000 Steps", icon: "👟", category: "Fitness", completed: false },
-  { id: 3, name: "30min Exercise", icon: "🏋️", category: "Fitness", completed: false },
-  { id: 4, name: "Git Push", icon: "🔀", category: "Git", completed: false },
-  { id: 5, name: "Screen Time < 3hrs", icon: "📱", category: "Screen", completed: false }
-];
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-let currentView = 'city';
+// TODO: REPLACE THIS WITH YOUR CONFIG FROM FIREBASE CONSOLE
+const firebaseConfig = {
+    apiKey: "AIzaSyCY7XTA2BvF8hrpvk65bBkm_qz3MzBUR7M",
+    authDomain: "habbit-builder-f56b3.firebaseapp.com",
+    projectId: "habbit-builder-f56b3",
+    storageBucket: "habbit-builder-f56b3.firebasestorage.app",
+    messagingSenderId: "213220040348",
+    appId: "1:213220040348:web:442715e1cf39a93518d759",
+    measurementId: "G-EHQSYCX0PF"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
+
+// Application State
+let tasks = [
+    { id: 1, name: "Attend Calendar Event", icon: "📅", category: "Calendar", completed: false },
+    { id: 2, name: "10,000 Steps", icon: "👟", category: "Fitness", completed: false },
+    { id: 4, name: "Git Push", icon: "🔀", category: "Git", completed: false }
+];
 let chartInstance = null;
 
-// Mock history for charts
-const dailyData = [40, 65, 100, 85, 95, 30, 100];
-const weeklyData = [45, 72, 88, 100];
-const monthlyData = [
-  {x: 'Week 1', y: 55}, {x: 'Week 2', y: 70},
-  {x: 'Week 3', y: 92}, {x: 'Week 4', y: 100}
-];
+// ====================== AUTHENTICATION ======================
 
-// ====================== CORE LOGIC ======================
-function saveToLocal() { localStorage.setItem('habitCityTasks', JSON.stringify(tasks)); }
+document.getElementById('login-btn').onclick = () => {
+    const email = document.getElementById('auth-email').value;
+    const pass = document.getElementById('auth-password').value;
+    signInWithEmailAndPassword(auth, email, pass).catch(err => alert(err.message));
+};
 
-function loadFromLocal() {
-  const saved = localStorage.getItem('habitCityTasks');
-  if (saved) tasks = JSON.parse(saved);
-}
+document.getElementById('signup-btn').onclick = () => {
+    const email = document.getElementById('auth-email').value;
+    const pass = document.getElementById('auth-password').value;
+    createUserWithEmailAndPassword(auth, email, pass).catch(err => alert(err.message));
+};
 
-function updateProgressUI() {
-  const completed = tasks.filter(t => t.completed).length;
-  const total = tasks.length;
-  const perc = total === 0 ? 0 : Math.round((completed / total) * 100);
+document.getElementById('google-btn').onclick = () => signInWithPopup(auth, googleProvider);
+document.getElementById('logout-btn').onclick = () => signOut(auth);
 
-  document.getElementById('completed-count').textContent = completed;
-  document.getElementById('total-tasks').textContent = total;
-  document.getElementById('progress-bar').style.width = perc + '%';
-  document.getElementById('progress-perc').textContent = perc + '%';
-  document.getElementById('city-growth').textContent = perc + '%';
-  document.getElementById('tasks-completed-top').textContent = `${completed}/${total} tasks completed`;
-  
-  updateCityVisual(perc);
-  updateMilestones(perc);
-}
-
-// ====================== GITHUB API ======================
-async function checkGitPush() {
-  let githubUsername = localStorage.getItem('githubUsername');
-  if (!githubUsername) {
-    githubUsername = prompt('Enter your GitHub username to connect:');
-    if (!githubUsername) return false;
-    localStorage.setItem('githubUsername', githubUsername);
-  }
-
-  try {
-    const response = await fetch(`https://api.github.com/users/${githubUsername}/events?per_page=30`);
-    if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
-
-    const events = await response.json();
-    const today = new Date().toISOString().split('T')[0];
-
-    return events.some(event => {
-      if (event.type === 'PushEvent') {
-        return event.created_at.split('T')[0] === today;
-      }
-      return false;
-    });
-  } catch (error) {
-    console.error('Error checking GitHub:', error);
-    return false;
-  }
-}
-
-async function connectGitHub() {
-  const hasPushed = await checkGitPush();
-  if (hasPushed) {
-    const gitTask = tasks.find(t => t.name === 'Git Push');
-    if (gitTask && !gitTask.completed) {
-      gitTask.completed = true;
-      saveToLocal();
-      renderTasks();
-      updateProgressUI();
-      alert('✅ GitHub push detected! Task completed.');
+// Handle UI based on Login State
+onAuthStateChanged(auth, async (user) => {
+    const authScreen = document.getElementById('auth-screen');
+    const appContainer = document.getElementById('app-container');
+    
+    if (user) {
+        authScreen.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+        document.getElementById('user-display').textContent = user.email;
+        
+        // Database Sync: Fetch GitHub Username
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+        
+        if (snap.exists()) {
+            localStorage.setItem('githubUsername', snap.data().githubUsername);
+        } else {
+            const gitName = prompt("Enter your GitHub username to link your city:");
+            if (gitName) {
+                await setDoc(userRef, { githubUsername: gitName, email: user.email });
+                localStorage.setItem('githubUsername', gitName);
+            }
+        }
+        initDashboard();
     } else {
-      alert('GitHub connected! Task already completed.');
+        authScreen.classList.remove('hidden');
+        appContainer.classList.add('hidden');
     }
-  } else {
-    alert('No GitHub push detected for today.');
-  }
-}
+});
 
-// ====================== ANALYTICS & GRAPHS ======================
-function renderAnalytics() {
-  const { perc } = calculateProgress();
-  document.getElementById('avg-completion').textContent = perc;
-  // Initialize with daily view
-  switchChartTab(0);
-}
+// ====================== CITY LOGIC ======================
 
-function calculateProgress() {
-    const completed = tasks.filter(t => t.completed).length;
-    const total = tasks.length;
-    return { perc: total === 0 ? 0 : Math.round((completed / total) * 100) };
-}
-
-function switchChartTab(tabIndex) {
-  // UI Update for buttons
-  document.querySelectorAll('.tab-button').forEach((btn, idx) => {
-    btn.classList.toggle('active', idx === tabIndex);
-  });
-
-  const ctx = document.getElementById('progress-chart');
-  if (chartInstance) chartInstance.destroy();
-
-  let labels, data, type;
-  if (tabIndex === 0) { // Daily
-    labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    data = dailyData;
-    type = 'line';
-  } else if (tabIndex === 1) { // Weekly
-    labels = ['Week 1','Week 2','Week 3','Week 4'];
-    data = weeklyData;
-    type = 'bar';
-  } else { // Monthly
-    labels = monthlyData.map(m => m.x);
-    data = monthlyData.map(m => m.y);
-    type = 'line';
-  }
-
-  chartInstance = new Chart(ctx, {
-    type: type,
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Completion %',
-        data: data,
-        borderColor: '#facc15',
-        backgroundColor: 'rgba(250, 204, 21, 0.1)',
-        tension: 0.4,
-        borderWidth: 3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { min: 0, max: 100, grid: { color: '#27272a' } },
-        x: { grid: { color: '#27272a' } }
-      },
-      plugins: { legend: { display: false } }
-    }
-  });
-}
-
-// ====================== INITIALIZATION ======================
-function init() {
-  loadFromLocal();
-  renderCityBuildings();
-  renderCars();
-  renderTasks();
-  updateProgressUI();
-  
-  const dateEl = document.querySelector('#current-date span');
-  dateEl.textContent = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' 
-  });
-}
-
-// Helpers for UI rendering
-function renderCityBuildings() {
-  const container = document.getElementById('buildings-container');
-  const colors = ['#4f46e5', '#7c3aed', '#c026d3', '#ea580c', '#166534'];
-  container.innerHTML = colors.map((color, i) => `
-    <div data-max="${200 + i*50}" class="building relative w-14 rounded-t" style="background-color: ${color}; height:0px">
-      <div class="windows absolute inset-x-2 top-4 grid grid-cols-2 gap-1">
-        <div class="window h-3 rounded"></div><div class="window h-3 rounded"></div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function updateCityVisual(perc) {
-  document.querySelectorAll('.building').forEach(b => {
-    const maxH = b.dataset.max;
-    b.style.height = Math.floor((perc/100) * maxH) + 'px';
-  });
-}
-
-function updateMilestones(perc) {
-  document.querySelectorAll('.milestone').forEach(el => {
-    const level = parseInt(el.dataset.level);
-    el.classList.toggle('active', perc >= level);
-    el.style.opacity = perc >= level ? "1" : "0.4";
-  });
-}
-
-function renderCars() {
-  const container = document.getElementById('cars-container');
-  container.innerHTML = `<div class="car absolute bottom-2 text-5xl" style="left:10%; animation-duration: 6s; color:#ef4444;">🚗</div>`;
+function initDashboard() {
+    renderTasks();
+    renderBuildings();
+    updateProgress();
+    checkGithubPush();
 }
 
 function renderTasks() {
-  const container = document.getElementById('tasks-list');
-  container.innerHTML = tasks.map(t => `
-    <div onclick="toggleTask(${t.id})" class="task-card flex items-center gap-x-4 px-5 py-4 bg-white border border-zinc-100 rounded-3xl cursor-pointer">
-      <div class="w-8 h-8 flex items-center justify-center text-xl border-2 rounded-2xl ${t.completed ? 'bg-emerald-400 border-emerald-400' : ''}">
-        ${t.completed ? '✅' : t.icon}
-      </div>
-      <div class="flex-1">
-        <div class="font-semibold text-zinc-900">${t.name}</div>
-        <div class="text-xs text-zinc-400">${t.category}</div>
-      </div>
-    </div>
-  `).join('');
+    const list = document.getElementById('tasks-list');
+    list.innerHTML = tasks.map(t => `
+        <div onclick="window.toggleTask(${t.id})" class="p-4 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-zinc-100 transition">
+            <div class="w-10 h-10 flex items-center justify-center text-xl border-2 rounded-xl ${t.completed ? 'bg-emerald-400 border-emerald-400 text-white' : 'bg-white'}">
+                ${t.completed ? '✓' : t.icon}
+            </div>
+            <div>
+                <div class="font-bold text-sm">${t.name}</div>
+                <div class="text-[10px] uppercase text-zinc-400 font-bold">${t.category}</div>
+            </div>
+        </div>
+    `).join('');
 }
 
-function toggleTask(id) {
-  const task = tasks.find(t => t.id === id);
-  if (task) {
-    task.completed = !task.completed;
-    saveToLocal();
+window.toggleTask = (id) => {
+    const task = tasks.find(t => t.id === id);
+    if(task) task.completed = !task.completed;
     renderTasks();
-    updateProgressUI();
-  }
+    updateProgress();
+};
+
+function updateProgress() {
+    const done = tasks.filter(t => t.completed).length;
+    const perc = Math.round((done / tasks.length) * 100);
+    document.getElementById('progress-bar').style.width = perc + '%';
+    document.getElementById('progress-perc').textContent = perc + '%';
+    document.getElementById('avg-completion').textContent = perc + '%';
+    
+    // Growth animation for buildings
+    document.querySelectorAll('.building').forEach(b => {
+        const maxH = b.dataset.max;
+        b.style.height = Math.floor((perc / 100) * maxH) + 'px';
+    });
 }
 
-function toggleView() {
-  currentView = currentView === 'city' ? 'stats' : 'city';
-  document.getElementById('city-view').classList.toggle('hidden');
-  document.getElementById('stats-view').classList.toggle('hidden');
-  document.getElementById('view-text').textContent = currentView === 'city' ? 'View Stats' : 'View City';
-  if (currentView === 'stats') renderAnalytics();
+function renderBuildings() {
+    const container = document.getElementById('buildings-container');
+    const heights = [300, 220, 400, 280, 480, 350]; 
+    container.innerHTML = heights.map((h, i) => `
+        <div data-max="${h}" class="building w-12 bg-indigo-600 rounded-t transition-all duration-1000" style="height:0px; opacity: ${0.5 + (i * 0.1)}"></div>
+    `).join('');
 }
 
-function showAddTaskModal() { document.getElementById('modal-backdrop').classList.remove('hidden'); }
-function hideAddTaskModal() { document.getElementById('modal-backdrop').classList.add('hidden'); }
-
-function addCustomTask() {
-    const name = document.getElementById('custom-task-name').value;
-    if(!name) return;
-    tasks.push({ id: Date.now(), name, icon: "⭐", category: "Custom", completed: false });
-    saveToLocal(); renderTasks(); updateProgressUI(); hideAddTaskModal();
+async function checkGithubPush() {
+    const user = localStorage.getItem('githubUsername');
+    if(!user) return;
+    
+    try {
+        const res = await fetch(`https://api.github.com/users/${user}/events`);
+        const events = await res.json();
+        const today = new Date().toISOString().split('T')[0];
+        const pushed = events.some(e => e.type === 'PushEvent' && e.created_at.startsWith(today));
+        
+        if(pushed) {
+            const gitTask = tasks.find(t => t.category === 'Git');
+            if(gitTask && !gitTask.completed) {
+                gitTask.completed = true;
+                renderTasks();
+                updateProgress();
+            }
+        }
+    } catch(e) { console.error("GitHub sync failed"); }
 }
 
-window.onload = init;
+// Stats Toggle
+document.getElementById('view-btn').onclick = () => {
+    const stats = document.getElementById('stats-view');
+    stats.classList.toggle('hidden');
+    document.getElementById('view-btn').textContent = stats.classList.contains('hidden') ? 'View Stats' : 'View City';
+    if(!stats.classList.contains('hidden')) renderChart();
+};
+
+function renderChart() {
+    const ctx = document.getElementById('progress-chart');
+    if(chartInstance) chartInstance.destroy();
+    
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Habit %',
+                data: [40, 60, 100, 80, 90, 30, 100],
+                borderColor: '#fbbf24',
+                backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+    });
+}

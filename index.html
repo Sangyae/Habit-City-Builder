@@ -9,186 +9,93 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="tail-container bg-zinc-950 text-white h-full overflow-hidden">
-  <div class="flex flex-col h-screen" id="app-container">
-    
-    <div id="dashboard-view" class="flex flex-col h-full">
-      <header class="bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-x-3">
-          <div class="w-9 h-9 bg-yellow-400 rounded-2xl flex items-center justify-center text-zinc-900 text-2xl shadow-inner">🏙️</div>
-          <div>
-            <span class="logo-font text-3xl font-semibold tracking-tighter">Habit City</span>
-            <span class="text-yellow-400 text-3xl font-semibold tracking-tighter">Builder</span>
-          </div>
-        </div>
-        
-        <div class="flex items-center gap-x-8">
-          <div id="current-date" class="flex items-center gap-x-2 text-sm font-medium">
-            <i class="fa-solid fa-clock text-yellow-400"></i>
-            <span class="tabular-nums"></span>
-          </div>
-        </div>
-        
-        <div class="flex items-center gap-x-3">
-          <button onclick="toggleView()" id="view-btn"
-            class="flex items-center gap-x-2 bg-zinc-800 hover:bg-zinc-700 px-6 py-2 rounded-3xl text-sm font-semibold transition">
-            <i class="fa-solid fa-chart-line"></i>
-            <span id="view-text">View Stats</span>
-          </button>
-          <button onclick="connectGitHub()" 
-            class="flex items-center gap-x-2 bg-zinc-800 hover:bg-zinc-700 px-6 py-2 rounded-3xl text-sm font-semibold transition">
-            <i class="fa-brands fa-github"></i>
-            Connect GitHub
-          </button>
-        </div>
-      </header>
+<body class="bg-zinc-950 text-white h-full overflow-hidden tail-container">
+
+  <div id="auth-screen" class="flex items-center justify-center h-full">
+    <div class="bg-zinc-900 p-8 rounded-3xl w-full max-w-md border border-zinc-800 shadow-2xl text-center">
+      <div class="text-5xl mb-4">🏙️</div>
+      <h2 class="text-3xl font-bold mb-2">Habit City</h2>
+      <p class="text-zinc-400 mb-8">Login to grow your metropolis</p>
       
-      <div class="flex flex-1 overflow-hidden">
-        <div class="w-96 bg-white text-zinc-900 flex flex-col border-r border-zinc-200">
-          <div class="px-6 pt-8 pb-6 border-b">
-            <div class="flex justify-between items-end mb-2">
-              <div>
-                <h1 class="text-3xl font-semibold tracking-tight">Daily Habits</h1>
-                <p class="text-zinc-500 text-sm">Complete tasks to grow your city</p>
-              </div>
-              <div id="progress-text" class="text-right">
-                <div class="text-5xl font-bold text-yellow-400 tabular-nums" id="completed-count">0</div>
-                <div class="text-xs uppercase tracking-widest text-zinc-400 -mt-1">of <span id="total-tasks">5</span></div>
-              </div>
-            </div>
-            
-            <div class="h-3 bg-zinc-100 rounded-3xl overflow-hidden mt-4">
-              <div id="progress-bar" class="h-full bg-gradient-to-r from-yellow-400 to-amber-500 w-0 transition-all duration-700 rounded-3xl"></div>
-            </div>
-            <div id="progress-perc" class="text-xs font-mono text-amber-500 mt-1 text-right">0%</div>
-          </div>
-          
-          <div class="flex-1 overflow-auto px-4 py-3 space-y-3" id="tasks-list"></div>
-          
-          <div class="p-4 border-t bg-white">
-            <button onclick="showAddTaskModal()"
-              class="w-full flex items-center justify-center gap-x-3 bg-zinc-900 hover:bg-black text-white py-4 rounded-3xl font-semibold transition">
-              <i class="fa-solid fa-plus"></i>
-              <span>Add Custom Task</span>
-            </button>
-          </div>
+      <div class="space-y-4 text-left">
+        <div>
+          <label class="text-xs uppercase tracking-widest text-zinc-500 ml-1">Email</label>
+          <input id="auth-email" type="email" placeholder="email@example.com" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 mt-1 focus:border-yellow-400 outline-none">
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-widest text-zinc-500 ml-1">Password</label>
+          <input id="auth-password" type="password" placeholder="••••••••" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 mt-1 focus:border-yellow-400 outline-none">
         </div>
         
-        <div class="flex-1 flex flex-col" id="right-panel">
-          <div id="city-view" class="flex-1 flex flex-col relative">
-            <div class="absolute top-6 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-xl text-white px-8 py-3 rounded-3xl flex items-center gap-x-8 z-20 shadow-2xl">
-              <div class="text-center">
-                <div class="text-xs tracking-widest text-amber-400">CITY GROWTH</div>
-                <div id="city-growth" class="text-4xl font-bold tabular-nums text-white">0%</div>
-              </div>
-              <div class="h-9 w-px bg-white/20"></div>
-              <div class="text-center">
-                <div id="tasks-completed-top" class="text-sm font-semibold">0/5 tasks completed</div>
-              </div>
-            </div>
-            
-            <div onclick="toggleView()" class="absolute top-6 right-8 bg-black/70 backdrop-blur-xl text-white px-6 py-3 rounded-3xl flex items-center gap-x-3 cursor-pointer hover:scale-105 transition z-20">
-              <div id="city-status-icon" class="text-3xl">🌱</div>
-              <div>
-                <div class="text-xs text-emerald-400 font-semibold tracking-widest">CITY STATUS</div>
-                <div id="city-status-name" class="font-semibold text-lg">Seeds Planted</div>
-              </div>
-            </div>
-            
-            <div id="city" class="flex-1 relative">
-              <div class="sun absolute top-12 right-16 w-28 h-28 bg-yellow-300 rounded-full shadow-[0_0_80px_40px] shadow-yellow-300 z-10"></div>
-              
-              <div class="cloud absolute top-12 left-12 w-64 h-20 bg-white/90 rounded-[100px] z-10" style="animation-delay: 0s;">
-                <div class="absolute -top-8 left-12 w-32 h-32 bg-white/90 rounded-full"></div>
-                <div class="absolute -top-10 right-12 w-40 h-40 bg-white/90 rounded-full"></div>
-              </div>
-              <div class="cloud absolute top-28 left-96 w-48 h-16 bg-white/80 rounded-[100px] z-10" style="animation-delay: -12s;">
-                <div class="absolute -top-6 left-8 w-24 h-24 bg-white/80 rounded-full"></div>
-              </div>
-              
-              <div id="buildings-container" class="absolute bottom-24 left-0 right-0 h-3/4 z-20 flex items-end justify-around px-8"></div>
-              
-              <div class="absolute bottom-24 left-12 text-6xl z-30">🌳</div>
-              <div class="absolute bottom-24 right-28 text-5xl z-30">🌲</div>
-              
-              <div class="road absolute bottom-0 left-0 right-0 h-28 z-30">
-                <div class="road-lines absolute bottom-9 left-0 right-0 h-1"></div>
-                <div id="cars-container" class="absolute bottom-4 left-0 right-0 h-12 z-40"></div>
-              </div>
-              
-              <div class="absolute bottom-36 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-2xl px-6 py-4 rounded-3xl flex gap-6 z-40 shadow-2xl">
-                <div onclick="jumpToLevel(25)" class="milestone flex flex-col items-center cursor-pointer w-16" data-level="25">
-                  <div class="text-4xl">🌱</div>
-                  <div class="text-[10px] font-mono text-emerald-400 mt-1">25%</div>
-                </div>
-                <div onclick="jumpToLevel(50)" class="milestone flex flex-col items-center cursor-pointer w-16" data-level="50">
-                  <div class="text-4xl">🏠</div>
-                  <div class="text-[10px] font-mono text-amber-400 mt-1">50%</div>
-                </div>
-                <div onclick="jumpToLevel(75)" class="milestone flex flex-col items-center cursor-pointer w-16" data-level="75">
-                  <div class="text-4xl">🏘️</div>
-                  <div class="text-[10px] font-mono text-violet-400 mt-1">75%</div>
-                </div>
-                <div onclick="jumpToLevel(100)" class="milestone flex flex-col items-center cursor-pointer w-16" data-level="100">
-                  <div class="text-4xl">🏙️</div>
-                  <div class="text-[10px] font-mono text-sky-400 mt-1">100%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div id="stats-view" class="flex-1 bg-zinc-900 hidden flex-col overflow-auto p-8">
-            <h2 class="text-3xl font-semibold mb-8">Progress Analytics</h2>
-            <div class="grid grid-cols-4 gap-6 mb-10">
-              <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-6 rounded-3xl text-white">
-                <div class="text-emerald-100 text-sm font-medium">AVG COMPLETION</div>
-                <div id="avg-completion" class="text-6xl font-bold mt-1">0</div>
-              </div>
-              <div class="bg-gradient-to-br from-blue-500 to-cyan-500 p-6 rounded-3xl text-white">
-                <div class="text-blue-100 text-sm font-medium">CURRENT STREAK</div>
-                <div id="streak-days" class="text-6xl font-bold mt-1">0</div>
-              </div>
-              <div class="bg-gradient-to-br from-violet-500 to-purple-500 p-6 rounded-3xl text-white">
-                <div class="text-violet-100 text-sm font-medium">PERFECT DAYS</div>
-                <div id="perfect-days" class="text-6xl font-bold mt-1">0</div>
-              </div>
-              <div class="bg-gradient-to-br from-orange-500 to-amber-500 p-6 rounded-3xl text-white">
-                <div class="text-orange-100 text-sm font-medium">TOTAL DAYS</div>
-                <div id="total-days" class="text-6xl font-bold mt-1">0</div>
-              </div>
-            </div>
-            
-            <div class="flex gap-2 mb-4">
-              <button onclick="switchChartTab(0)" class="tab-button px-8 py-2 rounded-3xl text-sm font-semibold">Daily</button>
-              <button onclick="switchChartTab(1)" class="tab-button px-8 py-2 rounded-3xl text-sm font-semibold">Weekly</button>
-            </div>
-            
-            <div class="bg-zinc-800 rounded-3xl p-8 flex-1 relative">
-              <canvas id="progress-chart"></canvas>
-            </div>
-          </div>
+        <div class="flex gap-2 pt-2">
+          <button id="login-btn" class="flex-1 bg-yellow-400 text-zinc-900 font-bold py-4 rounded-2xl hover:bg-yellow-300 transition">Login</button>
+          <button id="signup-btn" class="flex-1 bg-zinc-700 text-white font-bold py-4 rounded-2xl hover:bg-zinc-600 transition">Sign Up</button>
         </div>
+        
+        <button id="google-btn" class="w-full bg-white text-zinc-900 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-zinc-100 transition">
+          <i class="fa-brands fa-google"></i> Continue with Google
+        </button>
       </div>
     </div>
   </div>
 
-  <div onclick="if(event.target.id==='modal-backdrop') hideAddTaskModal()" id="modal-backdrop" class="hidden fixed inset-0 bg-black/70 items-center justify-center z-50">
-    <div onclick="event.stopImmediatePropagation()" class="bg-white text-zinc-900 rounded-3xl w-full max-w-md mx-4">
-      <div class="px-8 py-6 border-b"><h3 class="text-2xl font-semibold">Add Custom Task</h3></div>
-      <div class="p-8 space-y-6">
-        <input id="custom-task-name" type="text" placeholder="Task name" class="w-full border rounded-2xl px-5 py-4">
-        <select id="custom-task-category" class="w-full border rounded-2xl px-5 py-4">
-          <option value="Custom">Custom</option>
-          <option value="Fitness">Fitness</option>
-        </select>
+  <div id="app-container" class="hidden flex flex-col h-screen">
+    <header class="bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-x-3">
+        <div class="w-9 h-9 bg-yellow-400 rounded-2xl flex items-center justify-center text-zinc-900 text-2xl shadow-inner">🏙️</div>
+        <span class="logo-font text-2xl font-semibold">Habit City <span class="text-yellow-400">Builder</span></span>
       </div>
-      <div class="flex border-t">
-        <button onclick="hideAddTaskModal()" class="flex-1 py-6 text-zinc-400">Cancel</button>
-        <button onclick="addCustomTask()" class="flex-1 py-6 bg-yellow-400 text-zinc-900">Add</button>
+      <div class="flex items-center gap-4">
+        <span id="user-display" class="text-sm text-zinc-400 hidden md:block"></span>
+        <button id="view-btn" class="bg-zinc-800 hover:bg-zinc-700 px-6 py-2 rounded-3xl text-sm font-semibold transition">View Stats</button>
+        <button id="logout-btn" class="text-xs bg-red-900/10 text-red-400 hover:bg-red-900/20 px-4 py-2 rounded-xl border border-red-900/20 transition">Logout</button>
       </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <div class="w-96 bg-white text-zinc-900 flex flex-col border-r border-zinc-200">
+            <div class="px-6 pt-8 pb-6 border-b">
+                <h1 class="text-2xl font-bold tracking-tight">Daily Habits</h1>
+                <div class="h-3 bg-zinc-100 rounded-3xl mt-4 overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-yellow-400 transition-all duration-700 w-0"></div>
+                </div>
+                <div class="flex justify-between items-center mt-1">
+                  <span class="text-[10px] text-zinc-400 uppercase font-bold tracking-tighter">City Growth</span>
+                  <span id="progress-perc" class="text-xs font-mono text-yellow-600 font-bold">0%</span>
+                </div>
+            </div>
+            <div id="tasks-list" class="flex-1 overflow-auto p-4 space-y-3">
+                </div>
+        </div>
+
+        <div class="flex-1 flex flex-col relative bg-zinc-900">
+            <div id="city-view" class="flex-1 relative overflow-hidden">
+                <div id="city" class="h-full">
+                    <div class="sun absolute top-12 right-16 w-24 h-24 bg-yellow-300 rounded-full shadow-[0_0_80px_rgba(253,224,71,0.6)]"></div>
+                    <div id="buildings-container" class="absolute bottom-24 left-0 right-0 h-3/4 flex items-end justify-around px-8 z-20">
+                        </div>
+                    <div class="road absolute bottom-0 w-full h-24 bg-zinc-800 z-10">
+                        <div class="road-lines h-1 w-full absolute top-1/2 border-t border-dashed border-yellow-500/50"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stats-view" class="hidden absolute inset-0 bg-zinc-950 p-8 overflow-auto z-30">
+                <h2 class="text-3xl font-bold mb-8">Progress Analytics</h2>
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
+                        <div class="text-zinc-500 text-xs uppercase tracking-widest font-bold">Avg Completion</div>
+                        <div id="avg-completion" class="text-5xl font-bold mt-2 text-yellow-400">0%</div>
+                    </div>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 h-96">
+                    <canvas id="progress-chart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
