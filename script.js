@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebas
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-// TODO: Paste your actual Firebase config below
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCY7XTA2BvF8hrpvk65bBkm_qz3MzBUR7M",
   authDomain: "habbit-builder-f56b3.firebaseapp.com",
@@ -73,7 +73,6 @@ document.getElementById('google-btn').onclick = async (e) => {
 document.getElementById('logout-btn').onclick = () => signOut(auth);
 
 // Handle UI based on Login State
-// Handle UI based on Login State
 onAuthStateChanged(auth, async (user) => {
     const authScreen = document.getElementById('auth-screen');
     const appContainer = document.getElementById('app-container');
@@ -84,7 +83,6 @@ onAuthStateChanged(auth, async (user) => {
         document.getElementById('user-display').textContent = user.email;
         
         try {
-            // Fetch GitHub Username safely
             const userRef = doc(db, "users", user.uid);
             const snap = await getDoc(userRef);
             
@@ -99,10 +97,8 @@ onAuthStateChanged(auth, async (user) => {
             }
         } catch (error) {
             console.error("Database permission error, but loading city anyway!", error);
-            // It will log the error but WON'T crash the app!
         }
         
-        // This will now successfully run no matter what!
         initDashboard();
     } else {
         authScreen.classList.remove('hidden');
@@ -114,10 +110,44 @@ onAuthStateChanged(auth, async (user) => {
 function initDashboard() {
     loadFromLocal();
     checkDayReset();
+    renderEnvironment(); // <-- This was missing! It spawns the cars and clouds
     renderTasks();
     renderBuildings();
     updateProgress();
     checkGithubPush(false); // Silent check on load
+}
+
+function renderEnvironment() {
+    // 1. Load Vehicles (Driving Right to Left using your EXISTING .car class!)
+    const cars = document.getElementById('cars-container');
+    if (cars) {
+        // The outer div handles the driving animation. 
+        // The inner div flips the car emoji so it faces the correct way!
+        cars.innerHTML = `
+            <div class="car absolute bottom-2" style="animation-duration: 8s; animation-delay: 0s;">
+                <div class="text-5xl";>🚗</div>
+            </div>
+            <div class="car absolute bottom-1" style="animation-duration: 14s; animation-delay: -4s;">
+                <div class="text-6xl";>🚌</div>
+            </div>
+            <div class="car absolute bottom-2" style="animation-duration: 10s; animation-delay: -8s;">
+                <div class="text-5xl";>🚕</div>
+            </div>
+            <div class="car absolute bottom-1" style="animation-duration: 7s; animation-delay: -2s;">
+                <div class="text-5xl";>🚙</div>
+            </div>
+        `;
+    }
+
+    // 2. Load Clouds (Drifting Right to Left using your EXISTING .cloud class!)
+    const clouds = document.getElementById('clouds-container');
+    if (clouds) {
+        clouds.innerHTML = `
+            <div class="cloud absolute text-8xl" style="top: 10%; animation-duration: 40s;">☁️</div>
+            <div class="cloud absolute text-6xl" style="top: 25%; animation-duration: 30s; animation-delay: -10s;">☁️</div>
+            <div class="cloud absolute text-9xl" style="top: 5%; animation-duration: 50s; animation-delay: -25s; opacity: 0.8;">☁️</div>
+        `;
+    }
 }
 
 function renderTasks() {
@@ -146,7 +176,6 @@ window.toggleTask = (id) => {
 function renderBuildings() {
     const container = document.getElementById('buildings-container');
     
-    // We added "transform-origin: bottom center" and a transition so the zoom is perfectly smooth!
     container.style.cssText = "position: absolute; bottom: 96px; left: 0; right: 0; height: 60%; display: flex; align-items: flex-end; justify-content: space-around; z-index: 20; transform-origin: bottom center; transition: transform 1.5s ease-in-out;";
     
     container.innerHTML = `
@@ -235,37 +264,76 @@ function updateProgress() {
         container.style.transform = `scale(1)`;
     }
 }
+
 // ====================== GITHUB API ======================
-document.getElementById('sync-github-btn').onclick = () => checkGithubPush(true);
+
+// Attach to window so the HTML button can always trigger it
+window.connectGitHub = async () => {
+    // Find the button to show a loading spinner
+    const btn = document.querySelector('button[onclick="connectGitHub()"]') || document.getElementById('sync-github-btn');
+    const originalText = btn ? btn.innerHTML : '<i class="fa-brands fa-github mr-2"></i>Connect GitHub';
+    
+    if (btn) {
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>Syncing...`;
+    }
+    
+    await checkGithubPush(true);
+    
+    if (btn) {
+        btn.innerHTML = originalText;
+    }
+};
 
 async function checkGithubPush(showAlert = false) {
-    const user = localStorage.getItem('githubUsername');
-    if(!user) return;
+    let user = localStorage.getItem('githubUsername');
+    
+    // If no user is saved, ask for it!
+    if (!user) {
+        user = prompt("Enter your GitHub username to connect:");
+        if (user) {
+            localStorage.setItem('githubUsername', user.trim());
+        } else {
+            if (showAlert) alert("Error: GitHub sync cancelled.");
+            return;
+        }
+    }
     
     try {
         const res = await fetch(`https://api.github.com/users/${user}/events?per_page=30`);
-        if (!res.ok) throw new Error("API request failed");
+        
+        if (!res.ok) {
+            throw new Error("API request failed. Check username.");
+        }
         
         const events = await res.json();
         const today = new Date().toISOString().split('T')[0];
         
+        // Check if any event today is a PushEvent
         const pushed = events.some(e => e.type === 'PushEvent' && e.created_at.startsWith(today));
         
-        if(pushed) {
-            const gitTask = tasks.find(t => t.name === 'Git Push');
-            if(gitTask && !gitTask.completed) {
+        if (pushed) {
+            const gitTask = tasks.find(t => t.category === 'Git' || t.name === 'Git Push');
+            if (gitTask && !gitTask.completed) {
                 gitTask.completed = true;
                 saveToLocal();
                 renderTasks();
-                updateProgress();
-                if(showAlert) alert('✅ GitHub push detected today! City updated.');
-            } else if (showAlert) {
-                alert('GitHub is synced! Task already completed.');
+                if (typeof updateProgress === "function") updateProgress();
+                if (typeof updateProgressUI === "function") updateProgressUI(); // Fallback for your older code
             }
-        } else if (showAlert) {
-            alert('No GitHub push detected today. Keep coding!');
+            // Success Popup
+            if (showAlert) alert('✅ Git connected! Push detected today.');
+        } else {
+            // Error Popup (No pushes today)
+            if (showAlert) alert(`Error: No GitHub push detected today for user '${user}'.`);
         }
-    } catch(e) { console.error("GitHub sync failed", e); }
+    } catch(e) { 
+        console.error("GitHub sync failed", e);
+        // Error Popup (Bad username or API issue)
+        if (showAlert) alert(`Error: Failed to connect to GitHub. Please check if the username '${user}' is correct.`);
+        
+        // Optional: clear the bad username so they can try again next time
+        localStorage.removeItem('githubUsername'); 
+    }
 }
 
 // ====================== MODAL & STATS ======================
@@ -273,10 +341,12 @@ document.getElementById('show-modal-btn').onclick = () => {
     document.getElementById('modal-backdrop').classList.remove('hidden');
     document.getElementById('modal-backdrop').classList.add('flex');
 };
+
 document.getElementById('close-modal-btn').onclick = () => {
     document.getElementById('modal-backdrop').classList.add('hidden');
     document.getElementById('modal-backdrop').classList.remove('flex');
 };
+
 document.getElementById('add-task-btn').onclick = () => {
     const name = document.getElementById('custom-task-name').value;
     const cat = document.getElementById('custom-task-category').value;

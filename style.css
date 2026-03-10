@@ -121,3 +121,28 @@
   filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4)); /* Real shadow under cars */
   pointer-events: none;
 }
+
+/* Clouds drift Right to Left */
+@keyframes drift-natural {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-300px); }
+}
+
+/* Vehicles drive Right to Left */
+@keyframes drive-backward {
+  0% { transform: translateX(calc(100vw + 200px)); }
+  100% { transform: translateX(-200px); }
+}
+
+.cloud-natural {
+  position: absolute;
+  animation: drift-natural linear infinite;
+  pointer-events: none;
+}
+
+.car-backward {
+  position: absolute;
+  animation: drive-backward linear infinite;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5));
+}
