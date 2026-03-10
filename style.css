@@ -95,3 +95,29 @@
     background-color: white;
     color: #18181b; /* zinc-900 */
 }
+
+/* Clouds drift Right to Left */
+@keyframes drift-natural {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-300px); }
+}
+
+/* Vehicles drive Left to Right */
+@keyframes drive-forward {
+  0% { transform: translateX(-200px); }
+  100% { transform: translateX(calc(100vw + 200px)); }
+}
+
+.cloud-img {
+  position: absolute;
+  animation: drift-natural linear infinite;
+  opacity: 0.85; /* Slight transparency for realism */
+  pointer-events: none;
+}
+
+.car-img {
+  position: absolute;
+  animation: drive-forward linear infinite;
+  filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4)); /* Real shadow under cars */
+  pointer-events: none;
+}
